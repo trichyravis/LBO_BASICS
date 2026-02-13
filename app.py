@@ -59,6 +59,35 @@ def apply_styles():
             border-right: 1px solid rgba(255,215,0,0.2);
         }}
 
+        /* Force all sidebar text to be light colored */
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] .stSlider label,
+        section[data-testid="stSidebar"] .stNumberInput label,
+        section[data-testid="stSidebar"] .stSelectbox label,
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] span,
+        section[data-testid="stSidebar"] .stMarkdown p,
+        section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
+        section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] label,
+        section[data-testid="stSidebar"] .stSlider [data-testid="stTickBarMin"],
+        section[data-testid="stSidebar"] .stSlider [data-testid="stTickBarMax"] {{
+            color: {COLORS['text_primary']} !important;
+        }}
+
+        /* Slider current value text */
+        section[data-testid="stSidebar"] [data-testid="stThumbValue"],
+        section[data-testid="stSidebar"] .stSlider div[data-testid="stTickBarMin"],
+        section[data-testid="stSidebar"] .stSlider div[data-testid="stTickBarMax"] {{
+            color: {COLORS['accent_gold']} !important;
+        }}
+
+        /* Number input and select box text inside fields */
+        section[data-testid="stSidebar"] input,
+        section[data-testid="stSidebar"] select,
+        section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] span {{
+            color: {COLORS['text_primary']} !important;
+        }}
+
         .header-container {{
             background: linear-gradient(135deg, {COLORS['dark_blue']}, {COLORS['medium_blue']});
             border: 2px solid {COLORS['accent_gold']};
