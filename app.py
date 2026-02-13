@@ -341,7 +341,7 @@ def main():
          border-radius:10px; margin-bottom:1.5rem; border:2px solid {COLORS['accent_gold']};">
         <h3 style="color:{COLORS['accent_gold']}; margin:0;">{BRANDING['icon']} LBO MODEL</h3>
         <p style="color:{COLORS['text_secondary']}; font-size:0.75rem; margin:5px 0 0;">
-            ✅ Corrected: Balance FCF in Returns</p>
+            ✅ Basic Paper Model</p>
     </div>
     """, unsafe_allow_html=True)
 
