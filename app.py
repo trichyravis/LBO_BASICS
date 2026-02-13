@@ -558,14 +558,7 @@ def main():
         wrong_irr = (wrong_moic ** (1 / model.hold_years)) - 1 if wrong_moic > 0 else 0
 
         st.markdown(f"""
-        <div class="error-banner">
-            <strong>❌ WITHOUT Balance FCF (Incorrect):</strong><br>
-            Equity = {fmt_m(returns['exit_ev'])} − {fmt_m(returns['remaining_debt'])}
-            = {fmt_m(wrong_eq)}<br>
-            MOIC = {wrong_moic:.2f}x | IRR = {wrong_irr * 100:.1f}%<br>
-            <strong>Error: MOIC understated by {returns['moic'] - wrong_moic:.2f}x,
-            IRR understated by {(returns['irr'] - wrong_irr) * 100:.1f}pp</strong>
-        </div>
+
         """, unsafe_allow_html=True)
 
         st.markdown('<div class="section-title">📊 Returns Attribution Bridge</div>', unsafe_allow_html=True)
