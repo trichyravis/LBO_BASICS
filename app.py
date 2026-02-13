@@ -5,6 +5,19 @@ The Mountain Path - World of Finance
 Prof. V. Ravichandran
 """
 
+import subprocess
+import sys
+
+def install_if_missing(package):
+    try:
+        __import__(package)
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package, "--quiet"])
+
+# Ensure dependencies are installed (Streamlit Cloud fallback)
+for pkg in ["plotly", "numpy", "pandas"]:
+    install_if_missing(pkg)
+
 import streamlit as st
 import numpy as np
 import pandas as pd
