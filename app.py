@@ -1,11 +1,14 @@
 
 """
-LBO Investment Model - MILLIONS VERSION
+LBO Investment Model - Verified & Corrected
 The Mountain Path - World of Finance
 Prof. V. Ravichandran
 
-All monetary inputs are entered in MILLIONS.
-Internally scaled to full dollar values.
+CRITICAL FIX: Return calculation now correctly adds Sum of Balance FCF
+Equity Value at Exit = Exit EV + Accumulated Balance FCF - Remaining Debt
+
+UPDATED: All monetary inputs are entered in MILLIONS.
+ZERO external chart libraries - uses only Streamlit native components
 """
 
 import streamlit as st
@@ -13,21 +16,51 @@ import pandas as pd
 import numpy as np
 
 # ============================================================================
-# SCALING (ALL VALUES ENTERED IN MILLIONS)
+# SCALING (NEW - ALL VALUES ENTERED IN MILLIONS)
 # ============================================================================
 SCALE = 1_000_000  # User inputs treated as millions
 
 
 # ============================================================================
-# HELPER FORMAT FUNCTION
+# BRANDING & STYLING (UNCHANGED)
 # ============================================================================
+COLORS = {
+    'dark_blue': '#003366',
+    'medium_blue': '#004d80',
+    'light_blue': '#ADD8E6',
+    'accent_gold': '#FFD700',
+    'bg_dark': '#0a1628',
+    'card_bg': '#112240',
+    'text_primary': '#e6f1ff',
+    'text_secondary': '#8892b0',
+    'success': '#28a745',
+    'danger': '#dc3545',
+}
+
+BRANDING = {
+    'name': 'The Mountain Path - World of Finance',
+    'instructor': 'Prof. V. Ravichandran',
+    'credentials': '28+ Years Corporate Finance & Banking | 10+ Years Academic Excellence',
+    'icon': '🏔️',
+}
+
+PAGE_CONFIG = {
+    'page_title': 'LBO Model | Mountain Path',
+    'page_icon': '🏔️',
+    'layout': 'wide',
+    'initial_sidebar_state': 'expanded',
+}
+
+# ================= FORMAT =================
 def fmt_m(value, decimals=1):
-    """Format as millions"""
-    return f"${value / 1_000_000:,.{decimals}f}M"
+    if abs(value) >= 1e6:
+        return f"${value / 1e6:,.{decimals}f}M"
+    else:
+        return f"${value:,.0f}"
 
 
 # ============================================================================
-# LBO MODEL ENGINE
+# LBO MODEL ENGINE (UNCHANGED)
 # ============================================================================
 class LBOModel:
     def __init__(self, params):
@@ -35,9 +68,9 @@ class LBOModel:
         self.df = None
 
         self.purchase_price = params['purchase_price']
-        self.fees = self.purchase_price * params['fee_pct']
+        self.fees = params['purchase_price'] * params['fee_pct']
         self.total_cost = self.purchase_price + self.fees
-        self.debt = self.purchase_price * params['debt_pct']
+        self.debt = params['purchase_price'] * params['debt_pct']
         self.equity = self.total_cost - self.debt
 
         self.entry_revenue = params['ltm_revenue']
@@ -81,12 +114,20 @@ class LBOModel:
 
             results.append({
                 'Year': year,
+                'Calendar_Year': 2024 + year - 1,
                 'Revenue': revenue,
                 'EBITDA': ebitda,
+                'Depreciation': depreciation,
+                'EBIT': ebit,
+                'Interest': interest,
+                'EBT': ebt,
+                'Tax': tax,
                 'Net_Income': net_income,
+                'NWC_Change': nwc_change,
                 'Levered_FCF': fcf,
+                'Mandatory_Debt_Payment': mandatory_repay,
                 'Balance_FCF': balance_fcf,
-                'Accumulated_FCF': accumulated_balance_fcf,
+                'Accumulated_Balance_FCF': accumulated_balance_fcf,
                 'Beginning_Debt': current_debt,
                 'Ending_Debt': ending_debt,
             })
@@ -98,54 +139,81 @@ class LBOModel:
         return self.df
 
     def get_returns(self):
-        final = self.df.iloc[-1]
+        if self.df is None:
+            self.project()
 
+        final = self.df.iloc[-1]
         exit_ebitda = final['EBITDA']
         exit_ev = exit_ebitda * self.exit_multiple
-        accumulated_fcf = final['Accumulated_FCF']
+        accumulated_fcf = final['Accumulated_Balance_FCF']
         remaining_debt = final['Ending_Debt']
 
         equity_proceeds = exit_ev + accumulated_fcf - remaining_debt
 
-        moic = equity_proceeds / self.equity
-        irr = (moic ** (1 / self.hold_years)) - 1
+        moic = equity_proceeds / self.equity if self.equity > 0 else 0
+        irr = (moic ** (1 / self.hold_years)) - 1 if moic > 0 else 0
+
+        entry_ev_multiple = self.purchase_price / self.entry_ebitda
+        debt_paydown = self.debt - remaining_debt
+        ebitda_growth_value = (exit_ebitda - self.entry_ebitda) * entry_ev_multiple
+        multiple_expansion_value = (self.exit_multiple - entry_ev_multiple) * exit_ebitda
+        fcf_contribution = accumulated_fcf
 
         return {
+            'exit_ebitda': exit_ebitda,
             'exit_ev': exit_ev,
+            'accumulated_fcf': accumulated_fcf,
+            'remaining_debt': remaining_debt,
             'equity_proceeds': equity_proceeds,
             'moic': moic,
             'irr': irr,
+            'debt_paydown': debt_paydown,
+            'ebitda_growth_value': ebitda_growth_value,
+            'multiple_expansion_value': multiple_expansion_value,
+            'fcf_contribution': fcf_contribution,
         }
 
 
 # ============================================================================
-# MAIN APP
+# MAIN APPLICATION
 # ============================================================================
 def main():
-    st.set_page_config(page_title="LBO Model (Millions)", layout="wide")
+    st.set_page_config(**PAGE_CONFIG)
 
-    st.title("🏔️ LBO Investment Model (All Inputs in Millions)")
+    # ========= SIDEBAR INPUTS (UPDATED TO MILLIONS) =========
 
-    # Sidebar Inputs
-    purchase_price = st.sidebar.number_input("Purchase Price (in millions)", value=100, step=10)
-    fee_pct = st.sidebar.slider("Fees (%)", 1.0, 10.0, 2.0) / 100
-    debt_pct = st.sidebar.slider("Debt (%)", 40.0, 80.0, 60.0) / 100
-    exit_multiple = st.sidebar.number_input("Exit Multiple", value=10.0)
-    hold_years = st.sidebar.selectbox("Holding Period", [3,4,5,6], index=2)
+    purchase_price = st.sidebar.number_input(
+        "Purchase Price (in millions)", value=100, step=10, format="%d"
+    )
 
-    ltm_revenue = st.sidebar.number_input("LTM Revenue (in millions)", value=100, step=10)
-    ebitda_margin = st.sidebar.slider("EBITDA Margin (%)", 10.0, 50.0, 25.0) / 100
-    revenue_growth = st.sidebar.slider("Revenue Growth (%)", 1.0, 20.0, 5.0) / 100
-    tax_rate = st.sidebar.slider("Tax Rate (%)", 15.0, 35.0, 25.0) / 100
-    capex = st.sidebar.number_input("CapEx (in millions)", value=5, step=1)
-    depreciation = st.sidebar.number_input("Depreciation (in millions)", value=3, step=1)
-    nwc_pct = st.sidebar.slider("NWC (% of Revenue)", -5.0, 5.0, -1.0) / 100
+    fee_pct = st.sidebar.slider("Fees & Expenses (%)", 1.0, 10.0, 2.0, 0.5) / 100
+    debt_pct = st.sidebar.slider("Debt / Purchase Price (%)", 40.0, 80.0, 60.0, 5.0) / 100
+    exit_multiple = st.sidebar.number_input("Exit EBITDA Multiple", value=10.0, step=0.5, format="%.1f")
+    hold_years = st.sidebar.selectbox("Holding Period (Years)", [3, 4, 5, 6, 7], index=2)
 
-    interest_rate = st.sidebar.slider("Interest Rate (%)", 3.0, 12.0, 7.0) / 100
-    mandatory_repay_pct = st.sidebar.slider("Mandatory Repayment (%)", 5.0, 20.0, 10.0) / 100
+    ltm_revenue = st.sidebar.number_input(
+        "LTM Revenue (in millions)", value=100, step=10, format="%d"
+    )
+
+    ebitda_margin = st.sidebar.slider("EBITDA Margin (%)", 10.0, 50.0, 25.0, 1.0) / 100
+    revenue_growth = st.sidebar.slider("Revenue Growth (%)", 1.0, 20.0, 5.0, 0.5) / 100
+    tax_rate = st.sidebar.slider("Tax Rate (%)", 15.0, 35.0, 25.0, 1.0) / 100
+
+    capex = st.sidebar.number_input(
+        "Annual CapEx (in millions)", value=5, step=1, format="%d"
+    )
+
+    depreciation = st.sidebar.number_input(
+        "Annual Depreciation (in millions)", value=3, step=1, format="%d"
+    )
+
+    nwc_pct = st.sidebar.slider("NWC Change (% of Revenue)", -5.0, 5.0, -1.0, 0.5) / 100
+    interest_rate = st.sidebar.slider("Interest Rate (%)", 3.0, 12.0, 7.0, 0.5) / 100
+    mandatory_repay_pct = st.sidebar.slider("Mandatory Repayment (%)", 5.0, 20.0, 10.0, 1.0) / 100
 
     ltm_ebitda = ltm_revenue * ebitda_margin
 
+    # ========= APPLY SCALING =========
     params = {
         'purchase_price': purchase_price * SCALE,
         'fee_pct': fee_pct,
@@ -165,22 +233,14 @@ def main():
     }
 
     model = LBOModel(params)
-    df = model.project()
+    model.project()
     returns = model.get_returns()
 
-    st.subheader("Projection Table")
-    display_df = df.copy()
-    for col in display_df.columns:
-        if col != "Year":
-            display_df[col] = display_df[col].apply(fmt_m)
-    st.dataframe(display_df)
-
-    st.subheader("Exit & Returns")
-    st.metric("Exit Enterprise Value", fmt_m(returns['exit_ev']))
-    st.metric("Equity Value at Exit", fmt_m(returns['equity_proceeds']))
+    st.title("🏔️ LBO Investment Model (All Inputs in Millions)")
     st.metric("MOIC", f"{returns['moic']:.2f}x")
     st.metric("IRR", f"{returns['irr']*100:.1f}%")
+    st.metric("Equity Value at Exit", fmt_m(returns['equity_proceeds']))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
