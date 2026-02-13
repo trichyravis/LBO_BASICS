@@ -82,7 +82,10 @@ def apply_styles():
         }}
 
         /* Number input and select box text inside fields */
-        section[data-testid="stSidebar"] input,
+        section[data-testid="stSidebar"] input {{
+            color: #1a1a2e !important;
+            background-color: #ffffff !important;
+        }}
         section[data-testid="stSidebar"] select,
         section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] span {{
             color: {COLORS['text_primary']} !important;
